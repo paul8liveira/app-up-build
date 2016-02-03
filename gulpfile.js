@@ -6,6 +6,7 @@ var path = require("path");
 var fs = require("fs");
 var del = require("del");
 var vinylPaths = require("vinyl-paths");
+var lazypipe = require("lazypipe");
 var webpack = require("webpack");
 var StringReplacePlugin = require("string-replace-webpack-plugin");
 
@@ -30,9 +31,16 @@ var factory = function(basePath, options) {
     var config = require("app-up").setup(basePath);
 
     var publicRoot = path.join(config.basePath, config.appPublicPath);
+    var tempRoot = path.join(config.basePath, "temp");
+    var tempPublicRoot = path.join(tempRoot, config.appPublicPath);
+    var tempViewsRoot = path.join(tempRoot, config.appViewsPath);
     var buildRoot = path.join(config.basePath, "build");
     var buildPublicRoot = path.join(buildRoot, config.appPublicPath);
     var buildViewsRoot = path.join(buildRoot, config.appViewsPath);
+
+    var sassChannel = lazypipe()
+        .pipe($.sass)
+        .pipe(gulp.dest, config.basePath);
 
     gulp.task("default", ["clean", "copy", "usemin", "usemin-views", "package", "webpack"]);
 
@@ -40,17 +48,18 @@ var factory = function(basePath, options) {
 
     gulp.task("clean", function() {
         del.sync(buildRoot + "/**");
+        del.sync(tempRoot + "/**");
     });
 
     // packaging/organizing
 
     gulp.task("copy", function() {
-        return gulp.src(["./" + config.appPublicPath + "/**/*.*", "!./" + config.appPublicPath + "/**/*.+(js|css|html|map)"])
+        return gulp.src(["./" + config.appPublicPath + "/**/*.*", "!./" + config.appPublicPath + "/**/*.+(js|css|scss|html|map)"])
             .pipe(gulp.dest(buildPublicRoot));
     });
 
     gulp.task("package-prepare", function() {
-        return gulp.src(["./*.*", "!./.*", "!./gulpfile.js", "!./config.json", "!./webpack.config.js", "!./*.md", "!./*.sln", "!./*.suo"].concat(options.ignoredFiles))
+        return gulp.src(["./*.*", "!./.*", "!./gulpfile.js", "!./config.json", "!./webpack.config.js", "!./*.md", "!./*.sln", "!./*.suo", "!./*.log"].concat(options.ignoredFiles))
             .pipe(gulp.dest(buildRoot));
     });
 
@@ -62,30 +71,41 @@ var factory = function(basePath, options) {
 
     // minifying
 
-    gulp.task("usemin", function() {
-        return gulp.src("./" + config.appPublicPath + "/**/*.html")
+    gulp.task("temp-copy-html", function() {
+        return gulp.src("./" + config.appViewsPath + "/**/*.html")
+            .pipe(gulp.dest("temp/" + config.appViewsPath));
+    });
+
+    gulp.task("temp-copy-css", function() {
+        return gulp.src("./" + config.appPublicPath + "/**/*.+(css|scss)")
+            .pipe(gulp.dest("temp/" + config.appPublicPath));
+    });
+
+    gulp.task("usemin", ["temp-copy-html", "temp-copy-css"], function() {
+        return gulp.src("./temp/" + config.appPublicPath + "/**/*.html")
             .pipe($.usemin({
-                relativeTo: publicRoot,
+                relativeTo: tempPublicRoot,
                 css: [
-                    function() { return $.generateCssImport(publicRoot); },
+                    function() { return $.if(/\.scss$/i, sassChannel().on('error', $.sass.logError)); },
+                    function() { return $.generateCssImport(tempPublicRoot); },
                     function() { return $.minifyCss(); },
                     "concat",
                     function() { return $.rev(); }
                 ]
                 //html: [ minifyHtml({ empty: true }) ],
-                //js: [ uglify(), $.rev() ],
                 //inlinejs: [ uglify() ]
             }))
             .pipe(gulp.dest(buildPublicRoot));
     });
 
-    gulp.task("usemin-views-prepare", function() {
-        return gulp.src("./" + config.appViewsPath + "/**/*.html")
+    gulp.task("usemin-views-prepare", ["temp-copy-html", "temp-copy-css"], function() {
+        return gulp.src("./temp/" + config.appViewsPath + "/**/*.html")
             .pipe($.usemin({
-                relativeTo: publicRoot,
-                path: publicRoot,
+                relativeTo: tempPublicRoot,
+                path: tempPublicRoot,
                 css: [
-                    function() { return $.generateCssImport(publicRoot); },
+                    function() { return $.if(/\.scss$/i, sassChannel().on('error', $.sass.logError)); },
+                    function() { return $.generateCssImport(tempPublicRoot); },
                     function() { return $.minifyCss(); },
                     "concat",
                     function() { return $.rev(); }
@@ -95,6 +115,7 @@ var factory = function(basePath, options) {
     });
 
     gulp.task("usemin-views", ["usemin-views-prepare"], function() {
+        del.sync(tempRoot + "/**");
         return gulp.src(path.join(buildViewsRoot, "*.css"))
             .pipe(vinylPaths(del))
             .pipe(gulp.dest(buildPublicRoot));

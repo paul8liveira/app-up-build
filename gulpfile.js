@@ -42,7 +42,7 @@ var factory = function(basePath, options) {
         .pipe($.sass)
         .pipe(gulp.dest, config.basePath);
 
-    gulp.task("default", ["clean", "copy", "usemin", "usemin-views", "package", "webpack"]);
+    gulp.task("default", ["clean", "copy", "usemin-and-cleanup", "package", "webpack"]);
 
     // cleanup
 
@@ -71,13 +71,13 @@ var factory = function(basePath, options) {
 
     // minifying
 
-    gulp.task("temp-copy-html", function() {
+    gulp.task("temp-copy-views", function() {
         return gulp.src("./" + config.appViewsPath + "/**/*.html")
             .pipe(gulp.dest("temp/" + config.appViewsPath));
     });
 
-    gulp.task("temp-copy-css", function() {
-        return gulp.src("./" + config.appPublicPath + "/**/*.+(css|scss)")
+    gulp.task("temp-copy-public", function() {
+        return gulp.src("./" + config.appPublicPath + "/**/*.+(css|scss|html)")
             .pipe(gulp.dest("temp/" + config.appPublicPath));
     });
 
@@ -86,7 +86,7 @@ var factory = function(basePath, options) {
             .pipe(gulp.dest("temp/node_modules/"));
     });
 
-    gulp.task("usemin", ["temp-copy-html", "temp-copy-css", "temp-copy-modules-css"], function() {
+    gulp.task("usemin", ["temp-copy-views", "temp-copy-public", "temp-copy-modules-css"], function() {
         return gulp.src("./temp/" + config.appPublicPath + "/**/*.html")
             .pipe($.usemin({
                 relativeTo: tempPublicRoot,
@@ -103,7 +103,7 @@ var factory = function(basePath, options) {
             .pipe(gulp.dest(buildPublicRoot));
     });
 
-    gulp.task("usemin-views-prepare", ["temp-copy-html", "temp-copy-css", "temp-copy-modules-css"], function() {
+    gulp.task("usemin-views-prepare", ["temp-copy-views", "temp-copy-public", "temp-copy-modules-css"], function() {
         return gulp.src("./temp/" + config.appViewsPath + "/**/*.html")
             .pipe($.usemin({
                 relativeTo: tempPublicRoot,
@@ -120,10 +120,13 @@ var factory = function(basePath, options) {
     });
 
     gulp.task("usemin-views", ["usemin-views-prepare"], function() {
-        del.sync(tempRoot + "/**");
         return gulp.src(path.join(buildViewsRoot, "*.css"))
             .pipe(vinylPaths(del))
             .pipe(gulp.dest(buildPublicRoot));
+    });
+
+    gulp.task("usemin-and-cleanup", ["usemin", "usemin-views"], function() {
+        del.sync(tempRoot + "/**");
     });
 
     // webpack handling

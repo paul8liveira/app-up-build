@@ -81,7 +81,12 @@ var factory = function(basePath, options) {
             .pipe(gulp.dest("temp/" + config.appPublicPath));
     });
 
-    gulp.task("usemin", ["temp-copy-html", "temp-copy-css"], function() {
+    gulp.task("temp-copy-modules-css", function() {
+        return gulp.src("./node_modules/**/*.+(css|scss)")
+            .pipe(gulp.dest("temp/node_modules/"));
+    });
+
+    gulp.task("usemin", ["temp-copy-html", "temp-copy-css", "temp-copy-modules-css"], function() {
         return gulp.src("./temp/" + config.appPublicPath + "/**/*.html")
             .pipe($.usemin({
                 relativeTo: tempPublicRoot,
@@ -98,7 +103,7 @@ var factory = function(basePath, options) {
             .pipe(gulp.dest(buildPublicRoot));
     });
 
-    gulp.task("usemin-views-prepare", ["temp-copy-html", "temp-copy-css"], function() {
+    gulp.task("usemin-views-prepare", ["temp-copy-html", "temp-copy-css", "temp-copy-modules-css"], function() {
         return gulp.src("./temp/" + config.appViewsPath + "/**/*.html")
             .pipe($.usemin({
                 relativeTo: tempPublicRoot,

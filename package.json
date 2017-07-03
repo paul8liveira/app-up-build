@@ -1,6 +1,6 @@
 {
   "name": "app-up-build",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "engines": {
     "node": ">=4.x.x"
   },
@@ -8,7 +8,7 @@
   "main": "gulpfile.js",
   "author": "Bruno Assarisse <bruno@assarisse.com.br>",
   "dependencies": {
-    "app-up": "bassarisse/app-up",
+    "app-up": "gatec-ntc/app-up",
     "babel-core": "^6.3.15",
     "babel-loader": "^6.2.0",
     "babel-preset-es2015": "^6.3.13",

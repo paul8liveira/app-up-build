@@ -221,6 +221,7 @@ var factory = function(basePath, options) {
                     }
                 ]
             },
+            target: 'node',
             resolve: {
                 modulesDirectories: [config.appSharedPath, "web_modules", "node_modules"]
             },

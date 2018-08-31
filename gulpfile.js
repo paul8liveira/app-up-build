@@ -190,6 +190,13 @@ var factory = function(basePath, options) {
                 publicPath: "/entry/",
                 filename: "[name].js"
             },
+            externals: {
+                fs: '{}',
+                tls: '{}',
+                net: '{}',
+                console: '{}',
+                child_process: '{}'
+            },            
             module: {
                 loaders: [
                     {

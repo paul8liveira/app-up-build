@@ -191,11 +191,11 @@ var factory = function(basePath, options) {
                 filename: "[name].js"
             },
             externals: {
-                fs: '{}',
-                tls: '{}',
-                net: '{}',
-                console: '{}',
-                child_process: '{}'
+                fs: 'require("fs")',
+                tls: 'require("tls")',
+                net: 'require("net")',
+                console: 'require("console")',
+                child_process: 'require("child_process")'
             },            
             module: {
                 loaders: [
